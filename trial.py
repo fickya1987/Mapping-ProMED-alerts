@@ -2,116 +2,173 @@ import pandas as pd
 import streamlit as st
 from geopy.geocoders import Nominatim
 import pydeck as pdk
-
+import random
+from pandas.api.types import (
+    is_categorical_dtype,
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+)
 
 # REFERENCES
 # https://deckgl.readthedocs.io/en/latest/gallery/globe_view.html
 # https://deck.gl/docs/
 # https://python.plainenglish.io/building-lightweight-geospatial-data-viewers-with-streamlit-and-pydeck-de1e0fbd7ba7
+# https://stackoverflow.com/questions/33158417/pandas-combine-two-strings-ignore-nan-values
+# https://blog.streamlit.io/auto-generate-a-dataframe-filtering-ui-in-streamlit-with-filter_dataframe/
 
-# print(pd.DataFrame(columns=[':as','asdasd']))
-# data = pd.DataFrame({
-#         'latitude':[37.7749,34.0522,40.7128,28.6138954],
-#         'longitude':[-122.4194,-118.2437,-74.0060,77.2090057],
-#         'name':['SF',"Los Angeles","New York","Delhi"]
-# })
-# Create map
-# st.map(data)
-
-# Querying a geolocator for every instance will not be feasible. Moreover, that is not the primary objective of this.
-# Thus, a better approach might be to save the latitude and longitude of each instance of promed alert in the accompanying
-# Excel file itself.
-# locator = Nominatim(user_agent="Mapping")
+st.set_page_config(
+    layout="wide",
+    page_title="Mapping ProMED Alerts",
+    page_icon='🌏')
 
 
+def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds a UI on top of a dataframe to let viewers filter columns
 
-COUNTRIES = "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_scale_rank.geojson"
-# POWER_PLANTS = "https://raw.githubusercontent.com/ajduberstein/geo_datasets/master/global_power_plant_database.csv"
+    Args:
+        df (pd.DataFrame): Original dataframe
+
+    Returns:
+        pd.DataFrame: Filtered dataframe
+    """
+    modify = st.checkbox("Add filters")
+
+    if not modify:
+        return df
+
+    df = df.copy()
+
+    # Try to convert datetimes into a standard format (datetime, no timezone)
+    for col in df.columns:
+        if is_object_dtype(df[col]):
+            try:
+                df[col] = pd.to_datetime(df[col])
+            except Exception:
+                pass
+
+        if is_datetime64_any_dtype(df[col]):
+            df[col] = df[col].dt.tz_localize(None)
+
+    modification_container = st.container()
+
+    with modification_container:
+        to_filter_columns = st.multiselect("Filter dataframe on", ['Country','Disease name','Pathogen type','Affected species'])#df.columns)
+        for column in to_filter_columns:
+            left, right = st.columns((1, 20))
+            left.write("↳")
+            # Treat columns with < 10 unique values as categorical
+            if is_categorical_dtype(df[column]) or df[column].nunique() < 10:
+                user_cat_input = right.multiselect(
+                    f"Values for {column}",
+                    df[column].sort_values().unique(),
+                    default=[]#list(df[column].sort_values().unique()),
+                )
+                df = df[df[column].isin(user_cat_input)]
+            elif is_numeric_dtype(df[column]):
+                _min = float(df[column].min())
+                _max = float(df[column].max())
+                step = (_max - _min) / 100
+                user_num_input = right.slider(
+                    f"Values for {column}",
+                    _min,
+                    _max,
+                    (_min, _max),
+                    step=step,
+                )
+                df = df[df[column].between(*user_num_input)]
+            elif is_datetime64_any_dtype(df[column]):
+                user_date_input = right.date_input(
+                    f"Values for {column}",
+                    value=(
+                        df[column].min(),
+                        df[column].max(),
+                    ),
+                )
+                if len(user_date_input) == 2:
+                    user_date_input = tuple(map(pd.to_datetime, user_date_input))
+                    start_date, end_date = user_date_input
+                    df = df.loc[df[column].between(start_date, end_date)]
+            else:
+                user_text_input = right.text_input(
+                    f"Substring or regex in {column}",
+                )
+                if user_text_input:
+                    df = df[df[column].str.contains(user_text_input)]
+
+    return df
 
 
 
-# df = pd.read_csv(POWER_PLANTS)
-
-
-# def is_green(fuel_type):
-#     """Return a green RGB value if a facility uses a renewable fuel type"""
-#     if fuel_type.lower() in ("nuclear", "water", "wind", "hydro", "biomass", "solar", "geothermal"):
-#         return [10, 230, 120]
-#     return [230, 158, 10]
-
-
-# df["color"] = df["primary_fuel"].apply(is_green)
-
-# view_state = pdk.ViewState(latitude=51.47, longitude=0.45, zoom=2, min_zoom=2)
+def getCol():
+    R = random.randrange(10,256)
+    G = random.randrange(10,256)
+    B = random.randrange(10,256)
+    return [R,G,B]
+    
 
 # Set height and width variables
 view = pdk.View(type="_GlobeView", controller=True, width=1000, height=700)
 
+colourDict = dict()
 
 data = pd.read_excel("tracker.xlsx")
+diseases = data['Disease name'].unique()
+# st.write(diseases)
+for dis in diseases:
+    colour = getCol()
+    if colour not in colourDict.values():
+        colourDict[dis] = colour
 
-Lats = list()
-Lons = list()
-loca = list()
-def getLatLon(addr):
-    l = addr.split(", ")
-    lat = float(l[-2])
-    lon = float(l[-1])
-#     return lat,lon
-    Lats.append(lat)
-    Lons.append(lon)
-    loca.append(l[:-2])
-
-# lats,lons = 
-data["Location"].apply(getLatLon)
-
-# st.write(Lats,Lons)
-data['latitude'] = Lats
-data['longitude'] = Lons
-data['name'] = [", ".join(i) for i in loca]
+# pd.DataFrame({"Disease":colourDict.keys(),"Colour":colourDict.values()}).to_excel("colour.xlsx")
+# st.write(data['Disease name'].values)
+colourList = [colourDict[i] for i in data['Disease name'].values]
+# data['place'] = data['Region']+', '+data['State']+', '+data['Country']
+cols =['Region','State','Country']
+# data['place'] = data[cols].apply(lambda row:", ".join(row.values.astype(str)) if row.values.astype(str)!='nan', axis=1)
+data['Place'] = data[cols].apply(lambda x:x.str.cat(sep=', '),axis=1)
+# st.write(data['place'])
+data = data.astype('category')
+data['color'] = colourList
+df = filter_dataframe(data)
+# st.write(df)
 
 layers = [
     pdk.Layer(
-        "GeoJsonLayer",
-        id="base-map",
-        data=COUNTRIES,
-        stroked=False,
-        filled=True,
-        get_fill_color=[200, 200, 200],
-    ),
-    pdk.Layer(
-        "ColumnLayer",
-        id="power-plant",
-        data=data,
-        # get_elevation="capacity_mw",
-        get_position=["longitude", "latitude"],
-        # elevation_scale=100,
+        "ScatterplotLayer",
+        id="points",
+        data=df,
+        get_position=["Longitude", "Latitude"],
         pickable=True,
         stroked=True,
         filled=True,
-        opacity=0.8,
+        # extruded=False,
+        wireframe=True,
         auto_highlight=True,
-        # radius_scale=6,
-        radius=80000,
-        get_fill_color=[0,240,0]#"color",
+        get_radius=88000,
+        radiusMaxPixels=5,
+        radiusMinPixels=4,
+        getColor='color'
+        # get_line_color=[0,240,0],
+        # get_fill_color=[0,240,0]
     ),
 ]
 
+
 deck = pdk.Deck(
     views=[view],
-#     initial_view_state=view_state,
-#     tooltip={"text": "{name}, {primary_fuel} plant, {country}"},
-#     tooltip={"text":"{name}"},
     tooltip = {
-        "html": "<b>Location:</b> {name} <br/> <b>Disease:</b> {Disease name}<br/> <b>Pathogen type:</b> "+
-        "{Pathogen type}<br/> <b>Casual species:</b> {Causal species}<br/><b>Affected species:</b> {Affected species}",
+        "html": "<b>Location:</b> {Place} <br/> <b>Disease:</b> {Disease name}<br/> <b>Pathogen type:</b> "+
+        "{Pathogen type}<br/> <b>Casual species:</b> <i>{Causal species}</i><br/><b>Affected species:</b> {Affected species}",
         "style": {
         "backgroundColor": "steelblue",
         "color": "white"
         }
     },
     layers=layers,
-    map_provider=None,
+    map_provider="carto",
+    map_style='light',
     # Note that this must be set for the globe to be opaque
     parameters={"cull": True},
 )
