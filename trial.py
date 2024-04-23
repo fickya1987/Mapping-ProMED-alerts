@@ -25,7 +25,7 @@ st.set_page_config(
 
 st.header("Mapping disease instances from ProMED alerts")
 
-intro = "The [Program for Monitoring Emerging Diseases (ProMED)](https://promedmail.org/about-promed/) is a program of the International Society for Infectious Diseases (ISID).ProMED was launched in 1994 as an Internet service to identify unusual health events related to emerging and re-emerging infectious diseases and toxins affecting humans, animals and plants. It is the largest publicly-available system conducting global reporting of infectious disease outbreaks. "
+intro = "The [Program for Monitoring Emerging Diseases (ProMED)](https://promedmail.org/about-promed/) is a program of the International Society for Infectious Diseases (ISID). ProMED was launched in 1994 as an Internet service to identify unusual health events related to emerging and re-emerging infectious diseases and toxins affecting humans, animals and plants. It is the largest publicly-available system conducting global reporting of infectious disease outbreaks. "
 st.write(intro)
 st.write("\n\n")
 st.text("Hover over a point to view more information. You can also filter on countries, pathogen type, disease name, and affected species")
