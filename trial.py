@@ -1,3 +1,10 @@
+# REFERENCES
+# https://deckgl.readthedocs.io/en/latest/gallery/globe_view.html
+# https://deck.gl/docs/
+# https://python.plainenglish.io/building-lightweight-geospatial-data-viewers-with-streamlit-and-pydeck-de1e0fbd7ba7
+# https://stackoverflow.com/questions/33158417/pandas-combine-two-strings-ignore-nan-values
+# https://blog.streamlit.io/auto-generate-a-dataframe-filtering-ui-in-streamlit-with-filter_dataframe/
+
 import pandas as pd
 import streamlit as st
 from geopy.geocoders import Nominatim
@@ -10,18 +17,18 @@ from pandas.api.types import (
     is_object_dtype,
 )
 
-# REFERENCES
-# https://deckgl.readthedocs.io/en/latest/gallery/globe_view.html
-# https://deck.gl/docs/
-# https://python.plainenglish.io/building-lightweight-geospatial-data-viewers-with-streamlit-and-pydeck-de1e0fbd7ba7
-# https://stackoverflow.com/questions/33158417/pandas-combine-two-strings-ignore-nan-values
-# https://blog.streamlit.io/auto-generate-a-dataframe-filtering-ui-in-streamlit-with-filter_dataframe/
 
 st.set_page_config(
     layout="wide",
     page_title="Mapping ProMED Alerts",
     page_icon='🌏')
 
+st.header("Mapping disease instances from ProMED alerts")
+
+intro = "The [Program for Monitoring Emerging Diseases (ProMED)](https://promedmail.org/about-promed/) is a program of the International Society for Infectious Diseases (ISID).ProMED was launched in 1994 as an Internet service to identify unusual health events related to emerging and re-emerging infectious diseases and toxins affecting humans, animals and plants. It is the largest publicly-available system conducting global reporting of infectious disease outbreaks. "
+st.write(intro)
+st.write("\n\n")
+st.text("Hover over a point to view more information. You can also filter on countries, pathogen type, disease name, and affected species")
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -33,7 +40,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Filtered dataframe
     """
-    modify = st.checkbox("Add filters")
+    modify = st.checkbox("Filter data")
 
     if not modify:
         return df
@@ -100,8 +107,15 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+@st.cache_data()
+def getDiseaseData(path):
+    return pd.read_excel(path)
 
-def getCol():
+@st.cache_data()
+def getColourData(path):
+    return pd.read_excel(path).drop(columns="Unnamed: 0")
+
+def getRandomColour():
     R = random.randrange(10,256)
     G = random.randrange(10,256)
     B = random.randrange(10,256)
@@ -113,26 +127,49 @@ view = pdk.View(type="_GlobeView", controller=True, width=1000, height=700)
 
 colourDict = dict()
 
-data = pd.read_excel("tracker.xlsx")
-diseases = data['Disease name'].unique()
-# st.write(diseases)
-for dis in diseases:
-    colour = getCol()
-    if colour not in colourDict.values():
-        colourDict[dis] = colour
+# Get disease data from Excel file
+data = getDiseaseData("tracker.xlsx")
 
-# pd.DataFrame({"Disease":colourDict.keys(),"Colour":colourDict.values()}).to_excel("colour.xlsx")
-# st.write(data['Disease name'].values)
-colourList = [colourDict[i] for i in data['Disease name'].values]
-# data['place'] = data['Region']+', '+data['State']+', '+data['Country']
+# Get the colours for each disease
+currentDiseaseColours = getColourData("colours.xlsx")#pd.read_excel("colours.xlsx").drop(columns="Unnamed: 0")
+
+# Conver the dataframe into a dictionary to ease access
+colourDict = {row[1]['Disease']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
+
+diseases = data['Disease name'].unique()
+
+colourList = list()
+# print(currentDiseaseColours)
+for i in data['Disease name'].values:
+    if i in colourDict:
+        # colourList will be added as an extra column to disease data
+        colourList.append(colourDict[i])
+    else:
+        newColour = getRandomColour()
+        # To ensure newColour is unique
+        while newColour in colourDict.values():
+            newColour = getRandomColour()
+        colourList.append(newColour)
+        colourDict[i] = newColour
+        # print([i,newColour])
+
+        # Updating the existing colour df to include the previously unseen disease
+        currentDiseaseColours.loc[len(currentDiseaseColours)] = [i,newColour]
+
+# Updating the disease colours Excel file
+currentDiseaseColours.to_excel('colours.xlsx')
+
+# For displaying the location in the map, we add a new column which is the concatenation of region, state and country
+# Missing fields are ignored. i.e. if a particular row does not have a specified state, it will print "{region}, {country}"
+# instead of "{region}, NaN, {country}"
 cols =['Region','State','Country']
-# data['place'] = data[cols].apply(lambda row:", ".join(row.values.astype(str)) if row.values.astype(str)!='nan', axis=1)
 data['Place'] = data[cols].apply(lambda x:x.str.cat(sep=', '),axis=1)
-# st.write(data['place'])
+
+# We convert all columns to Categorical so filtering the dataframe is easier with the filter_dataframe function.
+# It also has the added benefit of reducing the size of the variable.
 data = data.astype('category')
 data['color'] = colourList
 df = filter_dataframe(data)
-# st.write(df)
 
 layers = [
     pdk.Layer(
