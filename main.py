@@ -17,6 +17,7 @@ from pandas.api.types import (
     is_object_dtype,
 )
 
+UPDATE_COLOURS = False
 
 st.set_page_config(
     layout="wide",
@@ -131,7 +132,7 @@ colourDict = dict()
 data = getDiseaseData("tracker.xlsx")
 
 # Get the colours for each disease
-currentDiseaseColours = getColourData("colours.xlsx")#pd.read_excel("colours.xlsx").drop(columns="Unnamed: 0")
+currentDiseaseColours = getColourData("colours.xlsx")
 
 # Conver the dataframe into a dictionary to ease access
 colourDict = {row[1]['Disease']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
@@ -157,7 +158,8 @@ for i in data['Disease name'].values:
         currentDiseaseColours.loc[len(currentDiseaseColours)] = [i,newColour]
 
 # Updating the disease colours Excel file
-currentDiseaseColours.to_excel('colours.xlsx')
+if UPDATE_COLOURS:
+    currentDiseaseColours.to_excel('colours.xlsx')
 
 # For displaying the location in the map, we add a new column which is the concatenation of region, state and country
 # Missing fields are ignored. i.e. if a particular row does not have a specified state, it will print "{region}, {country}"
