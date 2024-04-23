@@ -7,7 +7,6 @@
 
 import pandas as pd
 import streamlit as st
-from geopy.geocoders import Nominatim
 import pydeck as pdk
 import random
 from pandas.api.types import (
