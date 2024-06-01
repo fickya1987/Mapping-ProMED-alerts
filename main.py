@@ -23,7 +23,7 @@ st.set_page_config(
     page_title="GAMAN Akses Pasar untuk UMKM",
     page_icon='🌏')
 
-st.header("GAMAN - Pemetaan potensi pasar untuk UMKM ke Mancanegara berbasis geografis dan sektoral")
+st.header("GAMAN - Pemetaan Potensi Pasar untuk UMKM ke Mancanegara Berbasis Geografis dan Sektoral")
 
 intro = " GAMAN - Garuda Mandiri memberikan fasilitas akses pemetaan potensi pasar untuk UMKM Indonesia agar dapat menjual produknya ke mancanegara. Dengan Pendekatan AI melalui algoritma Machine Learning, Kami membangun visualisasi data pencarian target pasar UMKM beserta data-data penunjang bagi wirausaha UMKM dalam mencari pasarnya."
 st.write(intro)
