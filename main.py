@@ -136,7 +136,7 @@ currentDiseaseColours = getColourData("umkm_market_colours.xlsx")
 # Conver the dataframe into a dictionary to ease access
 colourDict = {row[1]['Sektor Pasar']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
 
-Sektor Pasar = data['Sektor Pasar'].unique()
+diseases = data['Sektor Pasar'].unique()
 
 colourList = list()
 # print(currentDiseaseColours)
