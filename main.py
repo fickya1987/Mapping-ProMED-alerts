@@ -23,12 +23,12 @@ st.set_page_config(
     page_title="Mapping ProMED Alerts",
     page_icon='🌏')
 
-st.header("Mapping disease instances from ProMED alerts")
+st.header("GAMAN - Pemetaan potensi pasar untuk UMKM ke Mancanegara berbasis geografis dan sektoral")
 
-intro = "The [Program for Monitoring Emerging Diseases (ProMED)](https://promedmail.org/about-promed/) is a program of the International Society for Infectious Diseases (ISID). ProMED was launched in 1994 as an Internet service to identify unusual health events related to emerging and re-emerging infectious diseases and toxins affecting humans, animals and plants. It is the largest publicly-available system conducting global reporting of infectious disease outbreaks. "
+intro = " GAMAN - Garuda Mandiri memberikan fasilitas akses pemetaan potensi pasar untuk UMKM Indonesia agar dapat menjual produknya ke mancanegara. Dengan Pendekatan AI melalui algoritma Machine Learning, Kami membangun visualisasi data pencarian target pasar UMKM beserta data-data penunjang bagi wirausaha UMKM dalam mencari pasarnya."
 st.write(intro)
 st.write("\n\n")
-st.text("Hover over a point to view more information. You can also filter on countries, pathogen type, disease name, and affected species")
+st.text("Silahkan Dipilih!")
 
 def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -61,7 +61,7 @@ def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     modification_container = st.container()
 
     with modification_container:
-        to_filter_columns = st.multiselect("Filter dataframe on", ['Country','Disease name','Pathogen type','Affected species'])#df.columns)
+        to_filter_columns = st.multiselect("Filter dataframe on", ['Negara','Sektor Pasar','Produk','Perusahaan', 'Kontak'])#df.columns)
         for column in to_filter_columns:
             left, right = st.columns((1, 20))
             left.write("↳")
@@ -128,10 +128,10 @@ view = pdk.View(type="_GlobeView", controller=True, width=1000, height=700)
 colourDict = dict()
 
 # Get disease data from Excel file
-data = getDiseaseData("tracker.xlsx")
+data = getDiseaseData("umkm_tracker.xlsx")
 
 # Get the colours for each disease
-currentDiseaseColours = getColourData("colours.xlsx")
+currentDiseaseColours = getColourData("umkm_colours.xlsx")
 
 # Conver the dataframe into a dictionary to ease access
 colourDict = {row[1]['Disease']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
@@ -158,12 +158,12 @@ for i in data['Disease name'].values:
 
 # Updating the disease colours Excel file
 if UPDATE_COLOURS:
-    currentDiseaseColours.to_excel('colours.xlsx')
+    currentDiseaseColours.to_excel('umkm_colours.xlsx')
 
 # For displaying the location in the map, we add a new column which is the concatenation of region, state and country
 # Missing fields are ignored. i.e. if a particular row does not have a specified state, it will print "{region}, {country}"
 # instead of "{region}, NaN, {country}"
-cols =['Region','State','Country']
+cols =['Daerah','Provinsi','Negara']
 data['Place'] = data[cols].apply(lambda x:x.str.cat(sep=', '),axis=1)
 
 # We convert all columns to Categorical so filtering the dataframe is easier with the filter_dataframe function.
@@ -197,8 +197,8 @@ layers = [
 deck = pdk.Deck(
     views=[view],
     tooltip = {
-        "html": "<b>Location:</b> {Place} <br/> <b>Disease:</b> {Disease name}<br/> <b>Pathogen type:</b> "+
-        "{Pathogen type}<br/> <b>Casual species:</b> <i>{Causal species}</i><br/><b>Affected species:</b> {Affected species}",
+        "html": "<b>Negara:</b> {Place} <br/> <b>Sektor Pasar:</b> {Sektor Pasar}<br/> <b>Produk:</b> "+
+        "{Produk}<br/> <b>Kebutuhan:</b> {Kebutuhan}<br/> <b>Perusahaan:</b> {Perusahaan}<br/> <b>Kontak:</b> {Kontak}",
         "style": {
         "backgroundColor": "steelblue",
         "color": "white"
