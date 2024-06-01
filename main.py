@@ -134,13 +134,13 @@ data = getDiseaseData("umkm_market_tracker.xlsx")
 currentDiseaseColours = getColourData("umkm_market_colours.xlsx")
 
 # Conver the dataframe into a dictionary to ease access
-colourDict = {row[1]['Disease']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
+colourDict = {row[1]['Sektor Pasar']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
 
-diseases = data['Disease name'].unique()
+Sektor Pasar = data['Sektor Pasar'].unique()
 
 colourList = list()
 # print(currentDiseaseColours)
-for i in data['Disease name'].values:
+for i in data['Sektor Pasar'].values:
     if i in colourDict:
         # colourList will be added as an extra column to disease data
         colourList.append(colourDict[i])
@@ -158,7 +158,7 @@ for i in data['Disease name'].values:
 
 # Updating the disease colours Excel file
 if UPDATE_COLOURS:
-    currentDiseaseColours.to_excel('umkm_colours.xlsx')
+    currentDiseaseColours.to_excel('umkm_market_colours.xlsx')
 
 # For displaying the location in the map, we add a new column which is the concatenation of region, state and country
 # Missing fields are ignored. i.e. if a particular row does not have a specified state, it will print "{region}, {country}"
