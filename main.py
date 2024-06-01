@@ -20,7 +20,7 @@ UPDATE_COLOURS = False
 
 st.set_page_config(
     layout="wide",
-    page_title="Mapping ProMED Alerts",
+    page_title="GAMAN Akses Pasar untuk UMKM",
     page_icon='🌏')
 
 st.header("GAMAN - Pemetaan potensi pasar untuk UMKM ke Mancanegara berbasis geografis dan sektoral")
@@ -128,10 +128,10 @@ view = pdk.View(type="_GlobeView", controller=True, width=1000, height=700)
 colourDict = dict()
 
 # Get disease data from Excel file
-data = getDiseaseData("umkm_tracker.xlsx")
+data = getDiseaseData("umkm_market_tracker.xlsx")
 
 # Get the colours for each disease
-currentDiseaseColours = getColourData("umkm_colours.xlsx")
+currentDiseaseColours = getColourData("umkm_market_colours.xlsx")
 
 # Conver the dataframe into a dictionary to ease access
 colourDict = {row[1]['Disease']:eval(row[1]['Colour']) for row in currentDiseaseColours.iterrows()}
